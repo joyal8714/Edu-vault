@@ -13,4 +13,4 @@ const authenticateJWT=(req,res,next)=>{
     res.status(400).json({message:'invalid token'})
   }
 }
-modeule.exports=authenticateJWT
+modeule.exports=authenticateJWT   
