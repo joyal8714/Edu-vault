@@ -1,8 +1,10 @@
-const express = require('express');
+// backend/routes/videoRoutes.js
+import express from 'express';
+import { getVideosByUser } from '../controllers/videoController.js'; // <-- note .js extension
+import { authenticateJWT } from '../middleware/authMiddleware.js';
+
 const router = express.Router();
-const videoController = require('../controllers/videoController');
-const authenticateJWT = require('../middleware/authMiddleware');
 
-router.get('/my-videos', authenticateJWT, videoController.getVideosByUser);
+router.get('/my-videos', authenticateJWT, getVideosByUser);
 
-module.exports = router;
+export default router;

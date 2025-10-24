@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Videos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>My Videos</h2>
+  <div id="videosContainer"></div>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    async function fetchVideos() {
+      const res = await fetch('http://localhost:5000/api/videos/my-videos', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const videos = await res.json();
+      const container = document.getElementById('videosContainer');
+      videos.forEach(v => {
+        const videoElem = document.createElement('div');
+        videoElem.innerHTML = `
+          <h3>${v.title} (${v.category})</h3>
+          <p>${v.description}</p>
+          <video width="400" controls>
+            <source src="http://localhost:5000/${v.file_path}" type="video/mp4">
+          </video>
+        `;
+        container.appendChild(videoElem);
+      });
+    }
+
+    fetchVideos();
+  </script>
+</body>
+</html>

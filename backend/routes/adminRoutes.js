@@ -1,10 +1,12 @@
-const express = require('express');
+import express from 'express';
+import { uploadVideo, grantAccess } from '../controllers/adminController.js';
+import { authenticateJWT } from '../middleware/authMiddleware.js';
+import { isAdmin } from '../middleware/adminMiddleware.js';
 const router = express.Router();
-const adminController = require('../controllers/adminController');
-const authenticateJWT = require('../middleware/authMiddleware');
-const isAdmin = require('../middleware/adminMiddleware');
 
-router.post('/upload-video', authenticateJWT, isAdmin, adminController.uploadVideo);
-router.post('/grant-access', authenticateJWT, isAdmin, adminController.grantAccess);
+router.post('/upload-video', authenticateJWT, isAdmin, uploadVideo);
 
-module.exports = router;
+// Grant user access
+router.post('/grant-access', authenticateJWT, isAdmin, grantAccess);
+
+export default router; 

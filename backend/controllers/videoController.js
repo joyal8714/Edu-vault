@@ -1,20 +1,23 @@
-const pool = require('../config/db')
+// backend/controllers/videoController.js
+import pool from '../config/db.js';
 
-exports .getvideosByUser=async(req,res)=>{
-    try {
-        const videos = await pool.query(
-                `select v.id,v.title,v.filepath,v.description,c.name as category from videos v
-                join users_videos uv on uv.video_id=v.id
-                join categories c on v.category_id=c.id
-                where uv.user_id=$1`,
-                [req.user.id]
-        )
-    res.json(videos.rows)
-    
-    
-    } catch(err){
-        res.status(500).json({message:err.message})
-    }
+// Get all videos for a specific user
+export const getVideosByUser = async (req, res) => {
+  const userId = req.user.id;
 
+  try {
+    const result = await pool.query(
+      `SELECT v.id, v.title, v.description, v.file_path, c.name AS category
+       FROM videos v
+       JOIN user_videos uv ON uv.video_id = v.id
+       JOIN categories c ON v.category_id = c.id
+       WHERE uv.user_id = $1`,
+      [userId]
+    );
 
-}
+    res.json({ videos: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

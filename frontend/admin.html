@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>Upload Video</h2>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="text" name="title" placeholder="Video Title" required />
+    <input type="text" name="description" placeholder="Description" required />
+    <input type="number" name="category_id" placeholder="Category ID" required />
+    <input type="file" name="video" required />
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Grant User Access</h2>
+  <form id="grantForm">
+    <input type="number" name="user_id" placeholder="User ID" required />
+    <input type="number" name="video_id" placeholder="Video ID" required />
+    <button type="submit">Grant Access</button>
+  </form>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const res = await fetch('http://localhost:5000/api/admin/upload-video', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      alert(data.message);
+    });
+
+    document.getElementById('grantForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user_id = e.target.user_id.value;
+      const video_id = e.target.video_id.value;
+
+      const res = await fetch('http://localhost:5000/api/admin/grant-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ user_id, video_id })
+      });
+      const data = await res.json();
+      alert(data.message);
+    });
+  </script>
+</body>
+</html>
