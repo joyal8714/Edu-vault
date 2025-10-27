@@ -101,3 +101,23 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: 'Error fetching users' });
   }
 };
+
+// Remove access controller
+export const removeAccess = async (req, res) => {
+  const { user_id, video_id } = req.body;
+  try {
+    const result = await pool.query(
+      "DELETE FROM user_videos WHERE user_id = $1 AND video_id = $2",
+      [user_id, video_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'No access found for this user and video.' });
+    }
+
+    res.json({ message: 'Access removed successfully' });
+  } catch (err) {
+    console.error('Error removing access:', err);
+    res.status(500).json({ message: 'Server error while removing access' });
+  }
+};
