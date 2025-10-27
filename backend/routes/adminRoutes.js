@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadVideo, grantAccess } from '../controllers/adminController.js';
+import { uploadVideo, grantAccess, getAllVideos } from '../controllers/adminController.js';
 import { authenticateJWT } from '../middleware/authMiddleware.js';
 import { isAdmin } from '../middleware/adminMiddleware.js';
 const router = express.Router();
