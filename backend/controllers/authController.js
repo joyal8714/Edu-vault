@@ -25,6 +25,7 @@ export const register = async (req, res) => {
 };
 
 // User login
+// User login
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -42,7 +43,14 @@ export const login = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.json({ message: 'Login successful', token });
+    // ✅ Send redirect page based on role
+    const redirectPage = user.role === 'admin' ? '/admin.html' : '/dashboard.html';
+
+    res.json({
+      message: 'Login successful',
+      token,
+      redirect: redirectPage
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
