@@ -15,15 +15,25 @@
       const res = await fetch('http://localhost:5000/api/videos/my-videos', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const videos = await res.json();
+
+      const data = await res.json();
+      const videos = data.videos || [];
+
       const container = document.getElementById('videosContainer');
+      container.innerHTML = '';
+
+      if (videos.length === 0) {
+        container.innerHTML = '<p>No videos assigned to you yet.</p>';
+        return;
+      }
+
       videos.forEach(v => {
         const videoElem = document.createElement('div');
         videoElem.innerHTML = `
-          <h3>${v.title} (${v.category})</h3>
+          <h3>${v.title}</h3>
           <p>${v.description}</p>
           <video width="400" controls>
-            <source src="http://localhost:5000/${v.file_path}" type="video/mp4">
+            <source src="http://localhost:5000/${v.file_path.startsWith('uploads') ? v.file_path : 'uploads/' + v.file_path}" type="video/mp4">
           </video>
         `;
         container.appendChild(videoElem);

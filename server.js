@@ -28,6 +28,7 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ✅ Serve static frontend files
 app.use(express.static(path.join(__dirname, 'frontend')));

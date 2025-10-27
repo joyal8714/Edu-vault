@@ -36,8 +36,6 @@ export const login = async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(400).json({ message: 'Invalid email or password' });
 
-    if (!user.is_active) return res.status(403).json({ message: 'Permission not granted' });
-
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,

@@ -3,7 +3,7 @@
 import pool from '../config/db.js';
 import multer from 'multer';
 import path from 'path';
-
+import fs from 'fs';
 // Setup multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -21,7 +21,7 @@ export const uploadVideo = [
   upload.single('video'),
   async (req, res) => {
     const { title, description} = req.body;
-    const file_path = req.file.path;
+    const file_path = `uploads/${req.file.filename}`;
 
     try {
       const result = await pool.query(
@@ -55,5 +55,49 @@ export const getAllVideos = async (req, res) => {
     res.json({ videos: result.rows });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching videos' });
+  }
+};
+
+
+// Delete video by ID
+// backend/controllers/adminController.js
+
+export const deleteVideo = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1️⃣ Delete any user access records first
+    await pool.query("DELETE FROM user_videos WHERE video_id = $1", [id]);
+
+    // 2️⃣ Get the video file path before deleting video record
+    const result = await pool.query("SELECT file_path FROM videos WHERE id=$1", [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+
+    const filePath = result.rows[0].file_path;
+
+    // 3️⃣ Delete the video record
+    await pool.query("DELETE FROM videos WHERE id=$1", [id]);
+
+    // 4️⃣ Delete the file from uploads folder
+    fs.unlink(filePath, (err) => {
+      if (err) console.warn('⚠️ Could not delete file:', err.message);
+    });
+
+    res.json({ message: 'Video deleted successfully' });
+  } catch (err) {
+    console.error('❌ Error deleting video:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, name, email FROM users ORDER BY id ASC");
+    res.json({ users: result.rows });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching users' });
   }
 };
