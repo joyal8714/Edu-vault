@@ -1,0 +1,81 @@
+/* Reset and font setup */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Body Styling */
+body {
+  height: 100vh;
+  background: linear-gradient(135deg, #74ABE2, #5563DE);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Login Container */
+form {
+  background: #fff;
+  padding: 40px 50px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Title */
+h2 {
+  color: #333;
+  margin-bottom: 25px;
+  font-size: 28px;
+  letter-spacing: 1px;
+}
+
+/* Input Fields */
+input {
+  width: 100%;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  border-color: #5563DE;
+  outline: none;
+  box-shadow: 0 0 8px rgba(85, 99, 222, 0.3);
+}
+
+/* Button */
+button {
+  width: 100%;
+  background-color: #5563DE;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background-color: #4451C6;
+  transform: translateY(-2px);
+}
+
+/* Small animation for page load */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+form {
+  animation: fadeIn 0.8s ease-in-out;
+}
