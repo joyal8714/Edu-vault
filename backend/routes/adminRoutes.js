@@ -8,5 +8,5 @@ router.post('/upload-video', authenticateJWT, isAdmin, uploadVideo);
 
 // Grant user access
 router.post('/grant-access', authenticateJWT, isAdmin, grantAccess);
-
+router.get('/all-videos', authenticateJWT, isAdmin, getAllVideos);
 export default router; 

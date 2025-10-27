@@ -7,7 +7,7 @@ import path from 'path';
 // Setup multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+cb(null, path.join(process.cwd(), 'uploads'));
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -20,13 +20,13 @@ const upload = multer({ storage: storage });
 export const uploadVideo = [
   upload.single('video'),
   async (req, res) => {
-    const { title, description, category_id } = req.body;
+    const { title, description} = req.body;
     const file_path = req.file.path;
 
     try {
       const result = await pool.query(
-        "INSERT INTO videos (title, description, file_path, category_id) VALUES ($1, $2, $3, $4) RETURNING *",
-        [title, description, file_path, category_id]
+        "INSERT INTO videos (title, description, file_path) VALUES ($1, $2, $3) RETURNING *",
+        [title, description, file_path, ]
       );
       res.json({ message: 'Video uploaded successfully', video: result.rows[0] });
     } catch (err) {
@@ -46,5 +46,14 @@ export const grantAccess = async (req, res) => {
     res.json({ message: 'Access granted successfully' });
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+// Get all uploaded videos
+export const getAllVideos = async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM videos ORDER BY id DESC");
+    res.json({ videos: result.rows });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching videos' });
   }
 };
