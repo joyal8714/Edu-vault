@@ -93,12 +93,15 @@ export const deleteVideo = async (req, res) => {
 };
 
 
+
 export const getAllUsers = async (req, res) => {
   try {
-    const result = await pool.query("SELECT id, name, email FROM users ORDER BY id ASC");
+    // Only get users where role is 'user'
+    const result = await pool.query("SELECT id, name, email FROM users WHERE role = 'user'");
     res.json({ users: result.rows });
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching users' });
+    console.error('Error fetching users:', err);
+    res.status(500).json({ message: 'Server error fetching users' });
   }
 };
 
