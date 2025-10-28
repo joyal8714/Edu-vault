@@ -1,43 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>My Videos</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Videos | EduVault</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>My Videos</h2>
-  <div id="videosContainer"></div>
+  <header class="navbar">
+    <div class="logo">🎓 EduVault</div>
+    <nav>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>My Learning Dashboard</h1>
+    <p>Access all your granted educational videos below</p>
+  </section>
+
+  <main class="content">
+    <div id="videosContainer" class="videos-grid"></div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2025 EduVault — Empowering Learning Everywhere</p>
+  </footer>
 
   <script>
     const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
 
     async function fetchVideos() {
       const res = await fetch('http://localhost:5000/api/videos/my-videos', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
       const data = await res.json();
       const videos = data.videos || [];
-
       const container = document.getElementById('videosContainer');
       container.innerHTML = '';
 
       if (videos.length === 0) {
-        container.innerHTML = '<p>No videos assigned to you yet.</p>';
+        container.innerHTML = '<p class="empty">No videos assigned yet.</p>';
         return;
       }
 
       videos.forEach(v => {
         const videoElem = document.createElement('div');
+        videoElem.classList.add('video-card');
         videoElem.innerHTML = `
-          <h3>${v.title}</h3>
-          <p>${v.description}</p>
-          <video width="400" controls>
+          <video controls controlsList="nodownload" poster="thumbnail.jpg">
             <source src="http://localhost:5000/${v.file_path.startsWith('uploads') ? v.file_path : 'uploads/' + v.file_path}" type="video/mp4">
           </video>
+          <h3>${v.title}</h3>
+          <p>${v.description}</p>
         `;
         container.appendChild(videoElem);
       });
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
     }
 
     fetchVideos();

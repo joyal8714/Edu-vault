@@ -1,14 +1,123 @@
+/* General Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  font-family: "Inter", Arial, sans-serif;
+  background-color: #fafafa;
+  color: #222;
+  line-height: 1.6;
 }
 
-input, button {
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 15px 40px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #0058e4;
+}
+
+.logout-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.logout-btn:hover {
+  background: #c0392b;
+}
+
+/* Hero Section */
+.hero {
+  text-align: center;
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #333;
+}
+.hero p {
+  color: #666;
+  margin-top: 5px;
+  font-size: 1rem;
+}
+
+/* Video Grid */
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 25px;
+  padding: 30px 50px;
+}
+
+.video-card {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+  text-align: center;
+}
+.video-card:hover {
+  transform: translateY(-4px);
+}
+
+/* ✅ Updated video styling */
+.video-card video {
+  width: 90%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin: 0 auto;
   display: block;
-  margin: 10px 0;
-  padding: 8px;
 }
 
-video {
-  margin-top: 10px;
+/* Titles & Description */
+.video-card h3 {
+  margin-top: 12px;
+  color: #222;
+  font-size: 1.1rem;
+}
+.video-card p {
+  color: #666;
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+/* Empty Message */
+.empty {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #777;
+  padding: 50px;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 20px;
+  background: white;
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.05);
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 40px;
 }
