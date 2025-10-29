@@ -14,6 +14,14 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   fetchVideos();
 });
 
+
+
+
+function logout() {
+  localStorage.removeItem('token'); // remove JWT token
+  window.location.href = 'login.html'; // redirect back to login page
+}
+
 // Fetch videos
 async function fetchVideos() {
   const res = await fetch('http://localhost:5000/api/admin/all-videos', {
@@ -106,6 +114,9 @@ async function fetchUsers() {
       alert(data.message);
     });
   });
+
+
+
 
   // ✅ Remove access
   document.querySelectorAll('.remove-btn').forEach(btn => {
