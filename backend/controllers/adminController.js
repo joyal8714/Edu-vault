@@ -60,16 +60,14 @@ export const getAllVideos = async (req, res) => {
 
 
 // Delete video by ID
-// backend/controllers/adminController.js
-
 export const deleteVideo = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // 1️⃣ Delete any user access records first
+    // 1️ Delete any user access records first
     await pool.query("DELETE FROM user_videos WHERE video_id = $1", [id]);
 
-    // 2️⃣ Get the video file path before deleting video record
+    // 2️Get the video file path before deleting video record
     const result = await pool.query("SELECT file_path FROM videos WHERE id=$1", [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Video not found' });
@@ -77,12 +75,12 @@ export const deleteVideo = async (req, res) => {
 
     const filePath = result.rows[0].file_path;
 
-    // 3️⃣ Delete the video record
+    // 3️ Delete the video record
     await pool.query("DELETE FROM videos WHERE id=$1", [id]);
 
-    // 4️⃣ Delete the file from uploads folder
+    // 4️ Delete the file from uploads folder
     fs.unlink(filePath, (err) => {
-      if (err) console.warn('⚠️ Could not delete file:', err.message);
+      if (err) console.warn('Could not delete file:', err.message);
     });
 
     res.json({ message: 'Video deleted successfully' });

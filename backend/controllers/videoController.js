@@ -16,7 +16,7 @@ export const getVideosByUser = async (req, res) => {
     // Return videos properly
     res.json({ videos: result.rows });
   } catch (err) {
-    console.error('❌ Error fetching videos:', err);
+    console.error('Error fetching videos:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
