@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { getVideosByUser } from '../controllers/videoController.js'; 
 import { authenticateJWT } from '../middleware/authMiddleware.js';
