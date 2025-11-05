@@ -9,7 +9,6 @@ import { fileURLToPath } from 'url';
 import authRoutes from './backend/routes/authRoutes.js';
 import videoRoutes from './backend/routes/videoRoutes.js';
 import adminRoutes from './backend/routes/adminRoutes.js';
-import db from './backend/config/db.js';
 
 dotenv.config();
 
