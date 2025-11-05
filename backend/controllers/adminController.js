@@ -4,30 +4,27 @@ import upload from '../config/cloudinary.js'; // ✅ Cloudinary Multer storage
 import fs from 'fs';
 
 // ✅ Upload video controller (Cloudinary)
-export const uploadVideo = [
-  upload.single('video'),
-  async (req, res) => {
-    const { title, description } = req.body;
+export const uploadVideo = async (req, res) => {
+  const { title, description } = req.body;
 
-    try {
-      // ✅ Cloudinary returns the hosted URL inside req.file.path
-      const videoUrl = req.file.path;
+  try {
+    // ✅ Cloudinary returns the hosted URL inside req.file.path
+    const videoUrl = req.file.path;
 
-      const result = await pool.query(
-        "INSERT INTO videos (title, description, file_path) VALUES ($1, $2, $3) RETURNING *",
-        [title, description, videoUrl]
-      );
+    const result = await pool.query(
+      "INSERT INTO videos (title, description, file_path) VALUES ($1, $2, $3) RETURNING *",
+      [title, description, videoUrl]
+    );
 
-      res.status(201).json({
-        message: '✅ Video uploaded successfully to Cloudinary!',
-        video: result.rows[0],
-      });
-    } catch (err) {
-      console.error('❌ Error uploading video:', err);
-      res.status(500).json({ message: 'Video upload failed' });
-    }
-  },
-];
+    res.status(201).json({
+      message: '✅ Video uploaded successfully to Cloudinary!',
+      video: result.rows[0],
+    });
+  } catch (err) {
+    console.error('❌ Error uploading video:', err);
+    res.status(500).json({ message: 'Video upload failed' });
+  }
+};
 
 // ✅ Grant access controller
 export const grantAccess = async (req, res) => {

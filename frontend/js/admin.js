@@ -3,17 +3,37 @@ const token = localStorage.getItem('token');
 // Upload video
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const formData = new FormData(e.target);
-  const res = await fetch('http://localhost:5000/api/admin/upload-video', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData
-  });
-  const data = await res.json();
-  alert(data.message);
-  fetchVideos();
-});
 
+  const uploadBtn = e.target.querySelector('button[type="submit"]');
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = "Uploading... ⏳";
+
+  const formData = new FormData(e.target);
+
+  try {
+    const res = await fetch('http://localhost:5000/api/admin/upload-video', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    // 🕒 Wait 3 seconds before refreshing (Cloudinary needs short time)
+    setTimeout(() => {
+      fetchVideos();
+    }, 3000);
+
+  } catch (err) {
+    console.error("Upload failed:", err);
+    alert("Video upload failed. Please try again.");
+  } finally {
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = "Upload";
+    e.target.reset(); // optional: clear form after upload
+  }
+});
 
 
 
@@ -39,7 +59,7 @@ async function fetchVideos() {
       <p>${v.description}</p>
       <p><b>Video ID:</b> ${v.id}</p>
       <video width="400" controls>
-        <source src="http://localhost:5000/${v.file_path}" type="video/mp4">
+        <source src="${v.file_path}" type="video/mp4">
       </video>
       <button class="delete-btn" data-id="${v.id}">🗑️ Delete</button>
     `;

@@ -50,7 +50,7 @@
         videoElem.classList.add('video-card');
         videoElem.innerHTML = `
           <video controls controlsList="nodownload" poster="thumbnail.jpg">
-            <source src="http://localhost:5000/${v.file_path.startsWith('uploads') ? v.file_path : 'uploads/' + v.file_path}" type="video/mp4">
+          <source src="${v.file_path}" type="video/mp4">
           </video>
           <h3>${v.title}</h3>
           <p>${v.description}</p>
