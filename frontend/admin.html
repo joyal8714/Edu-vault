@@ -13,6 +13,7 @@
   </header>
 
   <main class="container">
+    <!-- Upload Video Section -->
     <section class="upload-section">
       <h2>📤 Upload Video</h2>
       <form id="uploadForm" enctype="multipart/form-data" class="upload-form">
@@ -23,14 +24,24 @@
       </form>
     </section>
 
+    <!-- All Uploaded Videos -->
     <section class="videos-section">
       <h2>🎞️ All Uploaded Videos</h2>
       <div id="videoList" class="card-container"></div>
     </section>
 
+    <!-- Registered Users -->
     <section class="users-section">
       <h2>👥 Registered Users</h2>
       <div id="userList" class="card-container"></div>
+    </section>
+
+    <!-- Live Stream Section -->
+    <section class="live-stream-section">
+      <h2>🔴 Live Stream</h2>
+      <button id="startStreamBtn">Start Live Stream</button>
+      <button id="stopStreamBtn">Stop Live Stream</button>
+      <video id="liveVideo" controls width="600" style="display:none; margin-top: 20px;"></video>
     </section>
   </main>
 
@@ -38,6 +49,59 @@
     <p>© 2025 EduVault Admin Dashboard</p>
   </footer>
 
+  <!-- HLS.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Admin JS -->
   <script src="js/admin.js"></script>
+
+  <script>
+    const startBtn = document.getElementById('startStreamBtn');
+    const stopBtn = document.getElementById('stopStreamBtn');
+    const liveVideo = document.getElementById('liveVideo');
+
+    startBtn.addEventListener('click', async () => {
+      const token = localStorage.getItem('token'); // admin JWT token
+      const res = await fetch('/api/admin/live/start', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if(res.ok){
+        alert(data.message);
+        liveVideo.style.display = 'block';
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(data.url);
+          hls.attachMedia(liveVideo);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            liveVideo.play();
+          });
+        } else if (liveVideo.canPlayType('application/vnd.apple.mpegurl')) {
+          liveVideo.src = data.url;
+          liveVideo.addEventListener('loadedmetadata', () => liveVideo.play());
+        }
+      } else {
+        alert('Error: ' + data.message);
+      }
+    });
+
+    stopBtn.addEventListener('click', async () => {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/live/stop', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if(res.ok){
+        alert(data.message);
+        liveVideo.pause();
+        liveVideo.style.display = 'none';
+        liveVideo.src = '';
+      } else {
+        alert('Error: ' + data.message);
+      }
+    });
+  </script>
 </body>
 </html>
