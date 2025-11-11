@@ -1,19 +1,30 @@
+// backend/middleware/authMiddleware.js
 
 import jwt from 'jsonwebtoken';
 
 export const authenticateJWT = (req, res, next) => {
-  const authHeader = req.headers['authorization'] || req.header('Authorization');
-  const token = authHeader && authHeader.split(' ')[1]; 
+    console.log('--- 2. Running authenticateJWT middleware ---');
+    const authHeader = req.headers.authorization;
 
-  if (!token) {
-    return res.status(401).json({ message: 'Access denied. No token provided' });
-  }
+    if (authHeader) {
+        const token = authHeader.split(' ')[1];
+        if (!token) {
+            console.error('Authorization header format is incorrect. Token is missing.');
+            return res.status(401).json({ message: 'Token not provided.' });
+        }
 
-  try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = verified;
-    next();
-  } catch (err) {
-    res.status(403).json({ message: 'Invalid token' });
-  }
+        console.log('Token found. Verifying...');
+        jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+            if (err) {
+                console.error('JWT Verification FAILED:', err.message);
+                return res.status(403).json({ message: 'Invalid token.' }); // Forbidden
+            }
+            console.log('JWT Verified Successfully.');
+            req.user = user;
+            next();
+        });
+    } else {
+        console.error('Authorization header missing. Denying access.');
+        res.status(401).json({ message: 'Authorization header required.' }); // Unauthorized
+    }
 };
