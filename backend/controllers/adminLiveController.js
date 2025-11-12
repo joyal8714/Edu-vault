@@ -34,33 +34,25 @@ export const startStream = (req, res) => {
 
   // --- THIS IS THE NEW, ULTRA-LOW-LATENCY FFMPEG COMMAND ---
   const ffmpegArgs = [
-    // --- Input Analysis Flags (Process Immediately) ---
-    '-probesize', '32',        // Analyze only a tiny amount of data
-    '-analyzeduration', '0',   // Don't spend time analyzing the stream duration
-    '-fflags', 'nobuffer',     // Do not buffer input data, process it as it arrives
+    // Input Devices
+    '-f', 'v4l2', '-i', videoDevice,
+    '-f', 'alsa', '-i', audioDevice,
 
-    // --- Input Devices ---
-    '-f', 'v4l2',
-    '-i', videoDevice,
-    '-f', 'alsa',
-    '-i', audioDevice,
+    // **CRITICAL FIX:** Enforce the most compatible formats for browsers
+    '-pix_fmt', 'yuv420p',  // The most compatible pixel format
+    '-ar', '44100',         // A standard audio sample rate
 
-    // --- Codecs and Performance ---
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-tune', 'zerolatency',
-    '-b:v', '2000k',           // Set a target video bitrate (e.g., 2 Mbps) for stability
-    '-c:a', 'aac',
-    '-b:a', '128k',
-    '-threads', '2',           // Use a specific number of CPU threads
+    // Video Codec & Performance
+    '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency',
 
-    // --- HLS Output Settings (Smaller Chunks for Less Delay) ---
-    '-f', 'hls',
-    '-hls_time', '2',          // Create smaller 2-second chunks
-    '-hls_list_size', '3',     // Keep only the last 3 chunks in the playlist
-    '-hls_flags', 'delete_segments',
+    // Audio Codec
+    '-c:a', 'aac', '-b:a', '128k',
+
+    // HLS Output Settings
+    '-f', 'hls', '-hls_time', '2', '-hls_list_size', '5', '-hls_flags', 'delete_segments',
     path.join(hlsDir, 'stream.m3u8')
   ];
+
 
   console.log(`Starting FFmpeg with LOW LATENCY settings for audio device ${audioDevice}...`);
   ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
