@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale-1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Dashboard | EduVault</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -20,10 +20,7 @@
   </section>
 
   <main class="content">
-    <!-- This container will ONLY hold the live stream player -->
     <div id="liveStreamContainer"></div>
-
-    <!-- This container will ONLY hold the recorded videos -->
     <h2>My Recorded Videos</h2>
     <div id="videosContainer" class="videos-grid"></div>
   </main>
@@ -32,13 +29,11 @@
     <p>© 2025 EduVault — Empowering Learning Everywhere</p>
   </footer>
 
-  <!-- We need Hls.js to play the live stream -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
     const token = localStorage.getItem('token');
     if (!token) window.location.href = 'login.html';
 
-    // Main function to load and organize content
     async function initializeDashboard() {
       const res = await fetch('/api/videos/my-videos', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -46,49 +41,52 @@
       const data = await res.json();
       const allContent = data.videos || [];
       
-      // INTELLIGENT SORTING:
-      // 1. Find if the user has access to the live stream (video_id = 0).
       const liveStreamAccess = allContent.find(item => item.id === 0);
-      
-      // 2. Filter out all other items to be the recorded videos.
       const recordedVideos = allContent.filter(item => item.id !== 0);
 
-      // Now, render each section with the correct, filtered data.
       renderLiveStream(liveStreamAccess);
       renderRecordedVideos(recordedVideos);
     }
 
-    // This function ONLY handles the live stream player
     function renderLiveStream(streamAccess) {
       const container = document.getElementById('liveStreamContainer');
       if (!streamAccess) {
-        // If the user does not have access to the live stream, show a simple message.
-        container.innerHTML = '<h2>Live Stream</h2><p class="empty">You do not have access to the live stream at this time.</p>';
+        container.innerHTML = '<h2>Live Stream</h2><p class="empty">You do not have access to the live stream.</p>';
         return;
       }
 
-      // If they have access, build the player. This code will only run ONCE.
       container.innerHTML = `
         <h2>🔴 Live Stream</h2>
         <div class="video-card live">
           <video id="liveVideo" controls controlsList="nodownload"></video>
           <h3>Live Broadcast</h3>
-          <p>The live session is available here when the administrator starts the stream.</p>
+          <p>The live session is available here when the administrator starts the stream from their browser.</p>
         </div>
       `;
 
-      // Initialize the HLS player for the live stream
       const liveVideo = document.getElementById('liveVideo');
+      
+      // **THE FIX:** The URL now points to the path proxied from Node-Media-Server.
+      // We assume a stream key of "stream" for simplicity.
       const streamUrl = '/hls/stream.m3u8';
 
       if (Hls.isSupported()) {
-        const hls = new Hls({ liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 5 });
+        const hls = new Hls({
+          liveSyncDurationCount: 3, 
+          liveMaxLatencyDurationCount: 5,
+          debug: false 
+        });
+
         hls.loadSource(streamUrl);
         hls.attachMedia(liveVideo);
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal && data.details === 'manifestLoadError') {
-            const liveCard = container.querySelector('.video-card.live');
-            if (liveCard && !liveCard.querySelector('.stream-offline')) {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          liveVideo.play().catch(e => console.warn("Autoplay was prevented.", e));
+        });
+        hls.on(Hls.Events.ERROR, function (event, data) {
+          if (data.fatal) {
+            console.error('HLS Player Error:', data);
+            const liveCard = document.querySelector('.video-card.live');
+            if (data.details === 'manifestLoadError' && !liveCard.querySelector('.stream-offline')) {
                liveCard.innerHTML += '<p class="stream-offline">The live stream is currently offline.</p>';
             }
           }
@@ -96,16 +94,13 @@
       }
     }
 
-    // This function ONLY handles the recorded videos
     function renderRecordedVideos(videos) {
       const container = document.getElementById('videosContainer');
       container.innerHTML = '';
-
       if (videos.length === 0) {
         container.innerHTML = '<p class="empty">No recorded videos have been assigned to you yet.</p>';
         return;
       }
-
       videos.forEach(v => {
         const videoElem = document.createElement('div');
         videoElem.classList.add('video-card');
@@ -123,7 +118,6 @@
       window.location.href = 'login.html';
     }
 
-    // Start the entire process when the page loads
     initializeDashboard();
   </script>
 </body>
