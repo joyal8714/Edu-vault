@@ -1,5 +1,4 @@
-// server.js (Final Corrected Version with Correct Fallback Route)
-
+// server.js (Final Production-Ready Version)
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
@@ -10,7 +9,6 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- Route Imports ---
 import authRoutes from './backend/routes/authRoutes.js';
 import videoRoutes from './backend/routes/videoRoutes.js';
 import adminRoutes from './backend/routes/adminRoutes.js';
@@ -21,8 +19,24 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- 1. Core Middleware ---
-app.use(cors({ origin: 'http://localhost:5000' }));
+// --- 1. Core Middleware (CORS, Body Parser) ---
+
+// **THE FINAL PRODUCTION CORS FIX**
+// This version is more flexible and reliable for deployment.
+const corsOptions = {
+  origin: (origin, callback) => {
+    // For development, allow localhost. For production, allow any 'onrender.com' subdomain.
+    // Also allow requests with no origin (like Postman or mobile apps).
+    if (!origin || origin.startsWith('http://localhost') || origin.endsWith('.onrender.com')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+app.use(cors(corsOptions));
+
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -35,11 +49,8 @@ app.use('/api/admin', adminRoutes);
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 // --- 4. Frontend Fallback Route (Must be LAST) ---
-// **THIS IS THE CORRECTED CODE**
-// This route matches any GET request that doesn't match an API route or a static file
-// and sends the main index.html file. This is crucial for your app to load correctly.
-app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend/index.html'));
 });
 
 // --- 5. Create HTTP and WebSocket Servers ---
