@@ -1,19 +1,31 @@
-// frontend/js/admin.js (Final Corrected Version)
+// frontend/js/admin.js (Final Production-Ready Version)
 
+// This is the single entry point for all JavaScript on the admin page.
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Initial Data Loading ---
     fetchVideos();
     fetchUsers();
+
+    // --- Static Event Listeners ---
     document.getElementById('uploadBtn')?.addEventListener('click', handleVideoUpload);
     document.getElementById('startStreamBtn')?.addEventListener('click', startBroadcasting);
     document.getElementById('stopStreamBtn')?.addEventListener('click', stopBroadcasting);
+
+    // --- Event Delegation for Dynamic Content ---
     document.getElementById('videoList')?.addEventListener('click', handleVideoListClicks);
     document.getElementById('userList')?.addEventListener('click', handleUserListClicks);
+    
+    // Disable the stop button initially
     const stopBtn = document.getElementById('stopStreamBtn');
-    if (stopBtn) stopBtn.disabled = true;
+    if(stopBtn) stopBtn.disabled = true;
 });
 
-let localStream;
-let peerConnections = {};
+
+// --- Global State ---
+let localStream; // This will hold the stream from the admin's camera
+let peerConnections = {}; // Stores a connection for each viewer
+
+// Use a secure WebSocket connection on a secure site
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const ws = new WebSocket(`${protocol}//${window.location.host}`);
 
@@ -23,28 +35,41 @@ ws.onmessage = async (event) => {
     const viewerId = data.viewerId;
 
     if (data.type === 'offer' && viewerId) {
-        if (!localStream) return;
+        if (!localStream) {
+            console.warn("Admin: Received an offer but the local stream is not ready.");
+            return;
+        }
         console.log(`Admin: Received offer from viewer ${viewerId}`);
-        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }] };
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
+            ]
+        };
         const pc = new RTCPeerConnection(configuration);
         peerConnections[viewerId] = pc;
         
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
         pc.onicecandidate = e => {
-            if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate, target: viewerId }));
+            if (e.candidate) {
+                ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate, target: viewerId }));
+            }
         };
         
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         ws.send(JSON.stringify({ type: 'answer', answer: answer, target: viewerId }));
+
     } else if (data.type === 'candidate' && data.senderId) {
         if (peerConnections[data.senderId]) {
             await peerConnections[data.senderId].addIceCandidate(new RTCIceCandidate(data.candidate));
         }
     }
 };
+
+// --- Browser-Based Streaming Functions ---
 
 async function startBroadcasting() {
     console.log('Attempting to access camera...');
@@ -58,10 +83,10 @@ async function startBroadcasting() {
         ws.send(JSON.stringify({ type: 'broadcaster' }));
         document.getElementById('startStreamBtn').disabled = true;
         document.getElementById('stopStreamBtn').disabled = false;
-        alert('You are now live!');
+        alert('You are now live! Authorized viewers can connect.');
     } catch (err) {
         console.error("Failed to get media devices:", err);
-        alert("Could not access camera.");
+        alert("Could not access camera/microphone.");
     }
 }
 
@@ -82,6 +107,8 @@ function stopBroadcasting() {
     alert('Broadcast has been stopped.');
 }
 
+// --- Video & User Management Functions ---
+
 function logout() {
     localStorage.removeItem('token');
     window.location.href = 'login.html';
@@ -98,6 +125,7 @@ async function handleVideoUpload() {
     uploadBtn.textContent = "Uploading... ⏳";
     const formData = new FormData(form);
     try {
+        // **FIX:** Using relative URL for deployment
         const res = await fetch('/api/admin/upload-video', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
@@ -122,6 +150,7 @@ async function handleVideoUpload() {
 
 async function fetchVideos() {
     const token = localStorage.getItem('token');
+    // **FIX:** Using relative URL for deployment
     const res = await fetch('/api/admin/all-videos', { headers: { 'Authorization': `Bearer ${token}` } });
     const data = await res.json();
     const container = document.getElementById('videoList');
@@ -136,6 +165,7 @@ async function fetchVideos() {
 
 async function fetchUsers() {
     const token = localStorage.getItem('token');
+    // **FIX:** Using relative URLs for deployment
     const usersRes = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
     const usersData = await usersRes.json();
     const container = document.getElementById('userList');
@@ -156,6 +186,7 @@ async function handleVideoListClicks(e) {
         const token = localStorage.getItem('token');
         const videoId = e.target.dataset.videoId;
         if (confirm(`Are you sure you want to delete video ID ${videoId}?`)) {
+            // **FIX:** Using relative URL for deployment
             const res = await fetch(`/api/admin/delete-video/${videoId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
             const data = await res.json();
             alert(data.message);
@@ -173,6 +204,7 @@ async function handleUserListClicks(e) {
     const videoId = select?.value;
     if (e.target.matches('.grant-btn')) {
         if (!videoId) return alert('Please select a video to grant access!');
+        // **FIX:** Using relative URL for deployment
         const res = await fetch('/api/admin/grant-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ user_id: userId, video_id: videoId }) });
         const data = await res.json();
         alert(data.message);
@@ -180,6 +212,7 @@ async function handleUserListClicks(e) {
     if (e.target.matches('.remove-btn')) {
         if (!videoId) return alert('Please select a video to remove access!');
         if (!confirm('Are you sure you want to remove this access?')) return;
+        // **FIX:** Using relative URL for deployment
         const res = await fetch('/api/admin/remove-access', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ user_id: userId, video_id: videoId }) });
         const data = await res.json();
         alert(data.message);
