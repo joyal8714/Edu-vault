@@ -9,89 +9,127 @@
 <body>
   <header class="navbar">
     <div class="logo">🎓 EduVault</div>
-    <nav>
-      <button class="logout-btn" onclick="logout()">Logout</button>
-    </nav>
+    <nav><button class="logout-btn" onclick="logout()">Logout</button></nav>
   </header>
-
   <section class="hero">
     <h1>My Learning Dashboard</h1>
     <p>Access all your granted educational content below</p>
   </section>
-
   <main class="content">
     <div id="liveStreamContainer"></div>
     <h2>My Recorded Videos</h2>
     <div id="videosContainer" class="videos-grid"></div>
   </main>
-
   <footer class="footer">
     <p>© 2025 EduVault — Empowering Learning Everywhere</p>
   </footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    const token = localStorage.getItem('token');
-    if (!token) window.location.href = 'login.html';
+           const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'login.html';
+
+        let peerConnection;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+        ws.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            switch (data.type) {
+                // **THE FIX:** This is the only message we need to start the process.
+                case 'broadcaster_ready':
+                    createAndSendOffer();
+                    break;
+                case 'answer':
+                    if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    break;
+                case 'candidate':
+                    if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    break;
+                case 'disconnect':
+                    closePeerConnection();
+                    break;
+            }
+        };
+    function createAndSendOffer() {
+        console.log("Viewer: Broadcaster is ready. Creating peer connection...");
+        const configuration = {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
+          ]
+        };
+        peerConnection = new RTCPeerConnection(configuration);
+        
+        peerConnection.ontrack = (event) => {
+            const liveVideo = document.getElementById('liveVideo');
+            if (liveVideo) {
+                console.log("Viewer: Received video track!");
+                liveVideo.srcObject = event.streams[0];
+            }
+        };
+
+        peerConnection.onicecandidate = e => {
+            if (e.candidate) {
+                ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate, target: 'broadcaster' }));
+            }
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+            if (peerConnection) console.log("Viewer: Connection state:", peerConnection.connectionState);
+        };
+        
+        peerConnection.addTransceiver('video', { direction: 'recvonly' });
+        peerConnection.addTransceiver('audio', { direction: 'recvonly' });
+        
+        peerConnection.createOffer()
+            .then(offer => peerConnection.setLocalDescription(offer))
+            .then(() => {
+                console.log("Viewer: Sending offer to broadcaster.");
+                ws.send(JSON.stringify({ type: 'offer', offer: peerConnection.localDescription, viewerId: ws.id }));
+            });
+    }
+
+    function closePeerConnection() {
+        if (peerConnection) peerConnection.close();
+        peerConnection = null;
+        const liveCard = document.querySelector('.video-card.live');
+        if (liveCard && !liveCard.querySelector('.stream-offline')) {
+            const status = document.getElementById('streamStatus');
+            if (status) status.textContent = "The live stream has ended.";
+        }
+    }
 
     async function initializeDashboard() {
-      const res = await fetch('/api/videos/my-videos', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      const allContent = data.videos || [];
-      
-      const liveStreamAccess = allContent.find(item => item.id === 0);
-      const recordedVideos = allContent.filter(item => item.id !== 0);
+        const res = await fetch('/api/videos/my-videos', { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        const allContent = data.videos || [];
+        const liveStreamAccess = allContent.find(item => item.id === 0);
+        const recordedVideos = allContent.filter(item => item.id !== 0);
 
-      renderLiveStream(liveStreamAccess);
-      renderRecordedVideos(recordedVideos);
+        renderLiveStream(liveStreamAccess);
+        renderRecordedVideos(recordedVideos);
     }
 
     function renderLiveStream(streamAccess) {
-      const container = document.getElementById('liveStreamContainer');
-      if (!streamAccess) {
-        container.innerHTML = '<h2>Live Stream</h2><p class="empty">You do not have access to the live stream.</p>';
-        return;
-      }
-
-      container.innerHTML = `
-        <h2>🔴 Live Stream</h2>
-        <div class="video-card live">
-          <video id="liveVideo" controls controlsList="nodownload"></video>
-          <h3>Live Broadcast</h3>
-          <p>The live session is available here when the administrator starts the stream from their browser.</p>
-        </div>
-      `;
-
-      const liveVideo = document.getElementById('liveVideo');
-      
-      // **THE FIX:** The URL now points to the path proxied from Node-Media-Server.
-      // We assume a stream key of "stream" for simplicity.
-      const streamUrl = '/hls/stream.m3u8';
-
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          liveSyncDurationCount: 3, 
-          liveMaxLatencyDurationCount: 5,
-          debug: false 
-        });
-
-        hls.loadSource(streamUrl);
-        hls.attachMedia(liveVideo);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          liveVideo.play().catch(e => console.warn("Autoplay was prevented.", e));
-        });
-        hls.on(Hls.Events.ERROR, function (event, data) {
-          if (data.fatal) {
-            console.error('HLS Player Error:', data);
-            const liveCard = document.querySelector('.video-card.live');
-            if (data.details === 'manifestLoadError' && !liveCard.querySelector('.stream-offline')) {
-               liveCard.innerHTML += '<p class="stream-offline">The live stream is currently offline.</p>';
-            }
-          }
-        });
-      }
+        const container = document.getElementById('liveStreamContainer');
+        if (!streamAccess) {
+            container.innerHTML = '<h2>Live Stream</h2><p class="empty">You do not have access to the live stream.</p>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <h2>🔴 Live Stream</h2>
+            <div class="video-card live">
+                <video id="liveVideo" autoplay playsinline muted controls controlsList="nodownload"></video>
+                <h3>Live Broadcast</h3>
+                <p id="streamStatus">Waiting for the broadcast to start...</p>
+            </div>
+        `;
+        
+        if (ws.readyState === ws.OPEN) {
+            ws.send(JSON.stringify({ type: 'viewer' }));
+        } else {
+            ws.onopen = () => ws.send(JSON.stringify({ type: 'viewer' }));
+        }
     }
 
     function renderRecordedVideos(videos) {
@@ -103,12 +141,8 @@
       }
       videos.forEach(v => {
         const videoElem = document.createElement('div');
-        videoElem.classList.add('video-card');
-        videoElem.innerHTML = `
-          <video controls controlsList="nodownload" poster="thumbnail.jpg" src="${v.file_path}"></video>
-          <h3>${v.title}</h3>
-          <p>${v.description}</p>
-        `;
+        videoElem.classList.add('card');
+        videoElem.innerHTML = `<video controls controlsList="nodownload" poster="thumbnail.jpg" src="${v.file_path}"></video><h3>${v.title}</h3><p>${v.description}</p>`;
         container.appendChild(videoElem);
       });
     }
