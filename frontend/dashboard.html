@@ -24,57 +24,48 @@
     <p>© 2025 EduVault — Empowering Learning Everywhere</p>
   </footer>
   <script>
-           const token = localStorage.getItem('token');
-        if (!token) window.location.href = 'login.html';
+         const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
 
-        let peerConnection;
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}`);
+    let peerConnection;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}`);
 
-        ws.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            switch (data.type) {
-                // **THE FIX:** This is the only message we need to start the process.
-                case 'broadcaster_ready':
-                    createAndSendOffer();
-                    break;
-                case 'answer':
-                    if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    break;
-                case 'candidate':
-                    if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                    break;
-                case 'disconnect':
-                    closePeerConnection();
-                    break;
-            }
-        };
+    ws.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+            case 'broadcaster_ready':
+                createAndSendOffer();
+                break;
+            case 'answer':
+                if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                break;
+            case 'candidate':
+                if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                break;
+            case 'disconnect':
+                closePeerConnection();
+                break;
+        }
+    };
+    
     function createAndSendOffer() {
-        console.log("Viewer: Broadcaster is ready. Creating peer connection...");
-        const configuration = {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
-          ]
-        };
+        if (peerConnection) return;
+        console.log("Viewer: Broadcaster is ready. Creating connection...");
+        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }] };
         peerConnection = new RTCPeerConnection(configuration);
         
+        // **THE FIX:** The ontrack handler must be assigned BEFORE the offer is created.
         peerConnection.ontrack = (event) => {
             const liveVideo = document.getElementById('liveVideo');
-            if (liveVideo) {
+            if (liveVideo && liveVideo.srcObject !== event.streams[0]) {
                 console.log("Viewer: Received video track!");
                 liveVideo.srcObject = event.streams[0];
             }
         };
 
         peerConnection.onicecandidate = e => {
-            if (e.candidate) {
-                ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate, target: 'broadcaster' }));
-            }
-        };
-
-        peerConnection.onconnectionstatechange = () => {
-            if (peerConnection) console.log("Viewer: Connection state:", peerConnection.connectionState);
+            if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate, target: 'broadcaster' }));
         };
         
         peerConnection.addTransceiver('video', { direction: 'recvonly' });
@@ -87,7 +78,6 @@
                 ws.send(JSON.stringify({ type: 'offer', offer: peerConnection.localDescription, viewerId: ws.id }));
             });
     }
-
     function closePeerConnection() {
         if (peerConnection) peerConnection.close();
         peerConnection = null;

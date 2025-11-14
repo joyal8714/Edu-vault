@@ -1,58 +1,48 @@
-// backend/controllers/authController.js
+// backend/controllers/authController.js (Final Corrected Version)
+
 import pool from '../config/db.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-// User registration
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await pool.query(
-      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *",
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const result = await pool.query(
+      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, 'user') RETURNING id, name, email, role",
       [name, email, hashedPassword]
     );
-
-    res.status(201).json({
-      message: 'User registered successfully',
-      user: newUser.rows[0],
-    });
+    res.status(201).json({ user: result.rows[0] });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    if (err.code === '23505') {
+        return res.status(400).json({ message: 'User with this email already exists.' });
+    }
+    res.status(500).json({ message: 'Server error during registration.' });
   }
 };
 
-// User login
-// User login
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
     const user = result.rows[0];
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    const payload = { id: user.id, role: user.role };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    if (!user) return res.status(400).json({ message: 'Invalid email or password' });
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(400).json({ message: 'Invalid email or password' });
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
-    // ✅ Send redirect page based on role
-    const redirectPage = user.role === 'admin' ? '/admin.html' : '/dashboard.html';
-
-    res.json({
-      message: 'Login successful',
-      token,
-      redirect: redirectPage
+    // **THE FIX:** Send the 'role' property, which the frontend is expecting.
+    res.json({ 
+      token: token,
+      role: user.role 
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error during login.' });
   }
 };
