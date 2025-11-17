@@ -5,6 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Dashboard | EduVault</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Styles for the play button overlay to fix mobile autoplay issues */
+    .video-card.live {
+      position: relative; /* This is necessary for the overlay to position correctly */
+      background-color: #000; /* Black background while waiting */
+    }
+    .play-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 1; /* Make sure it's on top of the video */
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+    .play-overlay.hidden {
+      display: none;
+      opacity: 0;
+    }
+    .play-button {
+      font-size: 3em;
+      color: white;
+      border: 3px solid white;
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.4);
+      line-height: 100px;
+      padding-left: 10px; /* Adjust triangle position */
+    }
+  </style>
 </head>
 <body>
   <header class="navbar">
@@ -23,8 +63,9 @@
   <footer class="footer">
     <p>© 2025 EduVault — Empowering Learning Everywhere</p>
   </footer>
+  
   <script>
-         const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (!token) window.location.href = 'login.html';
 
     let peerConnection;
@@ -52,20 +93,45 @@
     function createAndSendOffer() {
         if (peerConnection) return;
         console.log("Viewer: Broadcaster is ready. Creating connection...");
-        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }] };
+        const configuration = {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" }
+          ]
+        };
         peerConnection = new RTCPeerConnection(configuration);
         
-        // **THE FIX:** The ontrack handler must be assigned BEFORE the offer is created.
         peerConnection.ontrack = (event) => {
             const liveVideo = document.getElementById('liveVideo');
-            if (liveVideo && liveVideo.srcObject !== event.streams[0]) {
+            const playOverlay = document.getElementById('playOverlay');
+            const streamStatus = document.getElementById('streamStatus');
+            
+            if (liveVideo && playOverlay) {
                 console.log("Viewer: Received video track!");
                 liveVideo.srcObject = event.streams[0];
+                
+                // Show the play button and update status text
+                if (streamStatus) streamStatus.textContent = "Broadcast is live! Click to play.";
+                playOverlay.classList.remove('hidden');
+                
+                // When the user clicks the overlay, play the video and hide the button
+                playOverlay.onclick = () => {
+                    liveVideo.play();
+                    playOverlay.classList.add('hidden');
+                };
             }
         };
 
         peerConnection.onicecandidate = e => {
             if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', candidate: e.candidate, target: 'broadcaster' }));
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+            if (peerConnection) {
+                console.log("Viewer: Connection state:", peerConnection.connectionState);
+                const streamStatus = document.getElementById('streamStatus');
+                if (streamStatus) streamStatus.textContent = `Status: ${peerConnection.connectionState}`;
+            }
         };
         
         peerConnection.addTransceiver('video', { direction: 'recvonly' });
@@ -78,14 +144,12 @@
                 ws.send(JSON.stringify({ type: 'offer', offer: peerConnection.localDescription, viewerId: ws.id }));
             });
     }
+
     function closePeerConnection() {
         if (peerConnection) peerConnection.close();
         peerConnection = null;
-        const liveCard = document.querySelector('.video-card.live');
-        if (liveCard && !liveCard.querySelector('.stream-offline')) {
-            const status = document.getElementById('streamStatus');
-            if (status) status.textContent = "The live stream has ended.";
-        }
+        const status = document.getElementById('streamStatus');
+        if (status) status.textContent = "The live stream has ended.";
     }
 
     async function initializeDashboard() {
@@ -106,15 +170,25 @@
             return;
         }
         
+        // **MOBILE FIX:** The video tag does NOT have 'autoplay' or 'muted' anymore.
+        // The play button overlay is now included.
         container.innerHTML = `
             <h2>🔴 Live Stream</h2>
             <div class="video-card live">
-                <video id="liveVideo" autoplay playsinline muted controls controlsList="nodownload"></video>
+                <video id="liveVideo" playsinline controls controlsList="nodownload"></video>
+                <div id="playOverlay" class="play-overlay">
+                    <div class="play-button">▶</div>
+                </div>
                 <h3>Live Broadcast</h3>
                 <p id="streamStatus">Waiting for the broadcast to start...</p>
             </div>
         `;
         
+        // Hide the play button by default
+        const playOverlay = document.getElementById('playOverlay');
+        if (playOverlay) playOverlay.classList.add('hidden');
+        
+        // Announce that you are a viewer, ready to watch
         if (ws.readyState === ws.OPEN) {
             ws.send(JSON.stringify({ type: 'viewer' }));
         } else {
