@@ -160,7 +160,7 @@ async function fetchUsers() {
             div.classList.add('card');
             
             // Now, we map over the 'allOptions' array which includes the Live Stream
-            const options = allOptions.map(v => `<option value="${v.id}">${v.title}</option>`).join('');
+            const options = videosData.videos.map(v => `<option value="${v.id}">${v.title}</option>`).join('');
 
             div.innerHTML = `
                 <p><b>ID:</b> ${u.id} | <b>Name:</b> ${u.name} | <b>Email:</b> ${u.email}</p>

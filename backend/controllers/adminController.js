@@ -29,15 +29,20 @@ export const uploadVideo = async (req, res) => {
 export const grantAccess = async (req, res) => {
   const { user_id, video_id } = req.body;
   try {
+    // **THE FIX:** The "ON CONFLICT DO NOTHING" clause prevents the duplicate key error.
+    // If the (user_id, video_id) pair already exists, the command will be ignored.
     await pool.query(
-      "INSERT INTO user_videos (user_id, video_id) VALUES ($1, $2)",
+      `INSERT INTO user_videos (user_id, video_id) VALUES ($1, $2)
+       ON CONFLICT (user_id, video_id) DO NOTHING`,
       [user_id, video_id]
     );
-    res.json({ message: 'Access granted successfully' });
+    res.json({ message: 'Access granted successfully.' });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.error("Grant Access Error:", err);
+    res.status(400).json({ message: 'Failed to grant access.' });
   }
 };
+
 
 //  Get all uploaded videos
 export const getAllVideos = async (req, res) => {
