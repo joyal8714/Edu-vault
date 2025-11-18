@@ -57,7 +57,7 @@ export const getAllVideos = async (req, res) => {
 // Delete video by ID (Cloudinary-safe)
 export const deleteVideo = async (req, res) => {
   const { id } = req.params;
-
+ 
   try {
     // 1️ Delete any user access records first
     await pool.query("DELETE FROM user_videos WHERE video_id = $1", [id]);
